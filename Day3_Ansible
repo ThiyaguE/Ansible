@@ -92,6 +92,7 @@ Create a config file ansible.cfg and mark the inventory details to it.,
 root@ubuntu:~/verizon/Day3# cat ansible.cfg 
 [defaults]
 inventory=hosts
+
 root@ubuntu:~/verizon/Day3# ansible all -m ping
 ubuntu2 | SUCCESS => {
     "changed": false, 
@@ -316,5 +317,356 @@ root@ubuntu:~/verizon/Day3# tree
     └── ubuntu3
 
 3 directories, 17 files
+
+create a install file for installing nginx in both ubuntu and centos
+----------------------------------------------------
+root@ubuntu:~/verizon/Day3# cat installnginx.yml 
+- name: Demo for conditional installation - installing,config and deployment of webpage to nginx web server 
+  hosts: all
+  vars: 
+   - greeting_msg: Devops
+   - provitioner_tool: Docker
+   - automation_tool: Ansible  
+  tasks: 
+   #This is a comment
+   - name: Install nginx web server in Ubuntu
+     when: (ansible_distribution == "Ubuntu" and ansible_os_family == "Debian")
+     apt: 
+       name: nginx 
+       state: latest 
+       update_cache: yes
+
+   - name: Install EPEL (Extra Package for Enterprise Linux) in CentOS
+     when: (ansible_distribution == "CentOS" and ansible_os_family == "RedHat")
+     yum: name=epel-release state=latest
+
+   - name: Install nginx web server in CentOS
+     when: (ansible_distribution == "CentOS" and ansible_os_family == "RedHat")
+     yum: 
+       name: nginx 
+       state: latest 
+       #update_cache: yes
+   
+   - name: Configure nginx web root folder in Ubuntu 
+     when: (ansible_distribution == "Ubuntu" and ansible_os_family == "Debian")
+     copy: src=default dest=/etc/nginx/sites-available/default
+   
+   - name: Configure nginx web root folder in CentOS 
+     when: (ansible_distribution == "CentOS" and ansible_os_family == "RedHat")
+     copy: src=default.conf dest=/etc/nginx/conf.d/default.conf
+
+   - name: Restart the nginx server
+     command: service nginx restart
+
+   - name: Create the web root folder
+     file: path=/var/html state=directory mode=0777
+
+   - name: Deploy a web page into nginx web server
+     template: src=index.html.j2 dest=/var/html/index.html 
+     #when: (ansible_distribution == "Ubuntu" and ansible_os_family == "Debian")
+root@ubuntu:~/verizon/Day3# 
+root@ubuntu:~/verizon/Day3# vi installnginx.yml 
+root@ubuntu:~/verizon/Day3# 
+
+Run the playbook
+-------------------
+
+root@ubuntu:~/verizon/Day3# ansible-playbook -i hosts installnginx.yml 
+
+PLAY [Demo for conditional installation - installing,config and deployment of webpage to nginx web server] ***********************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************
+ [WARNING]: sftp transfer mechanism failed on [localhost]. Use ANSIBLE_DEBUG=1 to see detailed information
+
+ [WARNING]: sftp transfer mechanism failed on [localhost]. Use ANSIBLE_DEBUG=1 to see detailed information
+
+ok: [ubuntu3]
+ok: [ubuntu1]
+ok: [ubuntu2]
+ [WARNING]: sftp transfer mechanism failed on [localhost]. Use ANSIBLE_DEBUG=1 to see detailed information
+
+ok: [centos1]
+ok: [centos3]
+ok: [centos2]
+
+TASK [Install nginx web server in Ubuntu] ****************************************************************************************************
+skipping: [centos3]
+skipping: [centos1]
+skipping: [centos2]
+ok: [ubuntu3]
+ok: [ubuntu1]
+ok: [ubuntu2]
+
+TASK [Install EPEL (Extra Package for Enterprise Linux) in CentOS] ***************************************************************************
+skipping: [ubuntu3]
+skipping: [ubuntu1]
+skipping: [ubuntu2]
+ [WARNING]: sftp transfer mechanism failed on [localhost]. Use ANSIBLE_DEBUG=1 to see detailed information
+
+ [WARNING]: sftp transfer mechanism failed on [localhost]. Use ANSIBLE_DEBUG=1 to see detailed information
+
+ [WARNING]: sftp transfer mechanism failed on [localhost]. Use ANSIBLE_DEBUG=1 to see detailed information
+
+ok: [centos1]
+ok: [centos3]
+ok: [centos2]
+
+TASK [Install nginx web server in CentOS] ****************************************************************************************************
+skipping: [ubuntu3]
+skipping: [ubuntu1]
+skipping: [ubuntu2]
+ [WARNING]: sftp transfer mechanism failed on [localhost]. Use ANSIBLE_DEBUG=1 to see detailed information
+
+ [WARNING]: sftp transfer mechanism failed on [localhost]. Use ANSIBLE_DEBUG=1 to see detailed information
+
+ [WARNING]: sftp transfer mechanism failed on [localhost]. Use ANSIBLE_DEBUG=1 to see detailed information
+
+changed: [centos1]
+changed: [centos3]
+changed: [centos2]
+
+TASK [Configure nginx web root folder in Ubuntu] *********************************************************************************************
+skipping: [centos3]
+skipping: [centos1]
+skipping: [centos2]
+ok: [ubuntu1]
+ok: [ubuntu2]
+ok: [ubuntu3]
+
+TASK [Configure nginx web root folder in CentOS] *********************************************************************************************
+skipping: [ubuntu3]
+skipping: [ubuntu1]
+skipping: [ubuntu2]
+An exception occurred during task execution. To see the full traceback, use -vvv. The error was: 	/root/verizon/Day3/default.conf
+fatal: [centos3]: FAILED! => {"changed": false, "msg": "Could not find or access 'default.conf'\nSearched in:\n\t/root/verizon/Day3/files/default.conf\n\t/root/verizon/Day3/default.conf\n\t/root/verizon/Day3/files/default.conf\n\t/root/verizon/Day3/default.conf"}
+An exception occurred during task execution. To see the full traceback, use -vvv. The error was: 	/root/verizon/Day3/default.conf
+fatal: [centos1]: FAILED! => {"changed": false, "msg": "Could not find or access 'default.conf'\nSearched in:\n\t/root/verizon/Day3/files/default.conf\n\t/root/verizon/Day3/default.conf\n\t/root/verizon/Day3/files/default.conf\n\t/root/verizon/Day3/default.conf"}
+An exception occurred during task execution. To see the full traceback, use -vvv. The error was: 	/root/verizon/Day3/default.conf
+fatal: [centos2]: FAILED! => {"changed": false, "msg": "Could not find or access 'default.conf'\nSearched in:\n\t/root/verizon/Day3/files/default.conf\n\t/root/verizon/Day3/default.conf\n\t/root/verizon/Day3/files/default.conf\n\t/root/verizon/Day3/default.conf"}
+
+TASK [Restart the nginx server] **************************************************************************************************************
+ [WARNING]: Consider using the service module rather than running service.  If you need to use command because service is insufficient you
+can add warn=False to this command task or set command_warnings=False in ansible.cfg to get rid of this message.
+
+changed: [ubuntu1]
+changed: [ubuntu2]
+changed: [ubuntu3]
+
+TASK [Deploy a web page into nginx web server] ***********************************************************************************************
+ok: [ubuntu3]
+ok: [ubuntu1]
+ok: [ubuntu2]
+	to retry, use: --limit @/root/verizon/Day3/installnginx.retry
+
+PLAY RECAP ***********************************************************************************************************************************
+centos1                    : ok=3    changed=1    unreachable=0    failed=1   
+centos2                    : ok=3    changed=1    unreachable=0    failed=1   
+centos3                    : ok=3    changed=1    unreachable=0    failed=1   
+ubuntu1                    : ok=5    changed=1    unreachable=0    failed=0   
+ubuntu2                    : ok=5    changed=1    unreachable=0    failed=0   
+ubuntu3                    : ok=5    changed=1    unreachable=0    failed=0   
+
+
+The error is expected as we have to copy the default.conf frile from installed nginx centos machine
+--------------------------
+
+root@ubuntu:~/verizon/Day3# docker cp centos1:/etc/nginx/conf.d/default.conf .
+
+Now make the below changes to default.conf (root         /var/html;)
+-------------------------
+root@ubuntu:~/verizon/Day3# cat default.conf 
+#
+# The default server
+#
+
+server {
+    listen       80 default_server;
+    listen       [::]:80 default_server;
+    server_name  _;
+    root         /var/html;
+
+    # Load configuration files for the default server block.
+    include /etc/nginx/default.d/*.conf;
+
+    location / {
+    }
+
+    error_page 404 /404.html;
+        location = /40x.html {
+    }
+
+    error_page 500 502 503 504 /50x.html;
+        location = /50x.html {
+    }
+
+}
+
+Now create the index.html.js file to current working dir,
+---------------------------------------------------
+
+root@ubuntu:~/verizon/Day3# cat index.html.j2
+<html>
+	<title>Welcome to {{greeting_msg}}</title>
+	<body>
+		<h1>Provitioner Tool used is {{provitioner_tool}}</h1>
+		<h1>Automation Tool used is {{automation_tool}}</h1>
+	</body>
+</html>
+
+Also to ignore the ssh warning message modify the amsible.cfg
+----------------------------------
+
+root@ubuntu:~/verizon/Day3# cat ansible.cfg 
+[defaults]
+inventory=hosts
+
+[ssh_connection]
+scp_if_ssh = True
+
+
+Now re-run the playbook with retry option to run the failed commands 
+-----------------------------------------------------------
+
+root@ubuntu:~/verizon/Day3# ansible-playbook installnginx.yml --limit @/root/verizon/Day3/installnginx.retry
+
+PLAY [Demo for conditional installation - installing,config and deployment of webpage to nginx web server] ***********************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************
+ok: [centos1]
+ok: [centos3]
+ok: [centos2]
+
+TASK [Install nginx web server in Ubuntu] ****************************************************************************************************
+skipping: [centos3]
+skipping: [centos1]
+skipping: [centos2]
+
+TASK [Install EPEL (Extra Package for Enterprise Linux) in CentOS] ***************************************************************************
+ok: [centos1]
+ok: [centos2]
+ok: [centos3]
+
+TASK [Install nginx web server in CentOS] ****************************************************************************************************
+ok: [centos2]
+ok: [centos3]
+ok: [centos1]
+
+TASK [Configure nginx web root folder in Ubuntu] *********************************************************************************************
+skipping: [centos3]
+skipping: [centos1]
+skipping: [centos2]
+
+TASK [Configure nginx web root folder in CentOS] *********************************************************************************************
+ok: [centos2]
+ok: [centos1]
+ok: [centos3]
+
+TASK [Restart the nginx server] **************************************************************************************************************
+ [WARNING]: Consider using the service module rather than running service.  If you need to use command because service is insufficient you
+can add warn=False to this command task or set command_warnings=False in ansible.cfg to get rid of this message.
+
+changed: [centos3]
+changed: [centos1]
+changed: [centos2]
+
+TASK [Create the web root folder] ************************************************************************************************************
+changed: [centos3]
+changed: [centos1]
+changed: [centos2]
+
+TASK [Deploy a web page into nginx web server] ***********************************************************************************************
+changed: [centos1]
+changed: [centos3]
+changed: [centos2]
+
+PLAY RECAP ***********************************************************************************************************************************
+centos1                    : ok=7    changed=3    unreachable=0    failed=0   
+centos2                    : ok=7    changed=3    unreachable=0    failed=0   
+centos3                    : ok=7    changed=3    unreachable=0    failed=0   
+
+root@ubuntu:~/verizon/Day3# curl http://localhost:9000
+<html>
+	<title>Welcome to Devops</title>
+	<body>
+		<h1>Provitioner Tool used is Docker</h1>
+		<h1>Automation Tool used is Ansible</h1>
+	</body>
+</html>
+root@ubuntu:~/verizon/Day3# curl http://localhost:9001
+<html>
+	<title>Welcome to Devops</title>
+	<body>
+		<h1>Provitioner Tool used is Docker</h1>
+		<h1>Automation Tool used is Ansible</h1>
+	</body>
+</html>
+root@ubuntu:~/verizon/Day3# curl http://localhost:9002
+<html>
+	<title>Welcome to Devops</title>
+	<body>
+		<h1>Provitioner Tool used is Docker</h1>
+		<h1>Automation Tool used is Ansible</h1>
+	</body>
+</html>
+root@ubuntu:~/verizon/Day3# curl http://localhost:8000
+<html>
+	<title>Welcome to Devops</title>
+	<body>
+		<h1>Provitioner Tool used is Docker</h1>
+		<h1>Automation Tool used is Ansible</h1>
+	</body>
+</html>
+root@ubuntu:~/verizon/Day3# curl http://localhost:8001
+<html>
+	<title>Welcome to Devops</title>
+	<body>
+		<h1>Provitioner Tool used is Docker</h1>
+		<h1>Automation Tool used is Ansible</h1>
+	</body>
+</html>
+root@ubuntu:~/verizon/Day3# curl http://localhost:8002
+<html>
+	<title>Welcome to Devops</title>
+	<body>
+		<h1>Provitioner Tool used is Docker</h1>
+		<h1>Automation Tool used is Ansible</h1>
+	</body>
+</html>
+
+Final tree structure
+---------------------
+
+root@ubuntu:~/verizon/Day3# tree
+.
+├── ansible.cfg
+├── centos-sshd-passwordless
+│   ├── ansible.cfg
+│   ├── authorized_keys
+│   ├── Dockerfile
+│   ├── installapache.yml
+│   ├── inventory
+│   ├── myproject.log
+│   ├── sshd_config
+│   └── sudoers
+├── default
+├── default.conf
+├── group_vars
+│   └── all
+├── hosts
+├── host_vars
+│   ├── centos1
+│   ├── centos2
+│   ├── centos3
+│   ├── ubuntu1
+│   ├── ubuntu2
+│   └── ubuntu3
+├── index.html.j2
+├── installnginx.retry
+└── installnginx.yml
+
+3 directories, 22 files
+
+
+
 
 
