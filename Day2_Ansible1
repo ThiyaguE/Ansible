@@ -1,0 +1,507 @@
+Ansible setup
+-------------
+Static Inventory:
+-----------------
+Create a host file as below
+----------------
+
+root@ubuntu:~/verizon/Day2/ansible# vi hosts
+root@ubuntu:~/verizon/Day2/ansible# cat hosts 
+ubuntu1 ansible_user=root ansible_port=2000 ansible_host=localhost ansible_private_key_file=/root/.ssh/id_rsa
+ubuntu2 ansible_user=root ansible_port=2001 ansible_host=localhost ansible_private_key_file=/root/.ssh/id_rsa
+ubuntu3 ansible_user=root ansible_port=2002 ansible_host=localhost ansible_private_key_file=/root/.ssh/id_rsa
+
+Now do a ansible command to ping the created containers
+--------------------
+root@ubuntu:~/verizon/Day2/ansible# ansible -i hosts all -m ping
+ubuntu1 | SUCCESS => {
+    "changed": false, 
+    "ping": "pong"
+}
+ubuntu3 | SUCCESS => {
+    "changed": false, 
+    "ping": "pong"
+}
+ubuntu2 | SUCCESS => {
+    "changed": false, 
+    "ping": "pong"
+}
+
+Note: -i (inventory file) and -m (whtever given after -m runs with ansible module) and all is the group name (default group)
+
+To ping a particular container
+--------------
+root@ubuntu:~/verizon/Day2/ansible# ansible -i hosts ubuntu1 -m ping
+ubuntu1 | SUCCESS => {
+    "changed": false, 
+    "ping": "pong"
+}
+root@ubuntu:~/verizon/Day2/ansible# ansible -i hosts ubuntu1,ubuntu2 -m ping
+ubuntu2 | SUCCESS => {
+    "changed": false, 
+    "ping": "pong"
+}
+ubuntu1 | SUCCESS => {
+    "changed": false, 
+    "ping": "pong"
+}
+
+
+Creating groups and managing hosts
+---------------
+root@ubuntu:~/verizon/Day2/ansible# cat hosts 
+[all]
+ubuntu1 ansible_user=root ansible_port=2000 ansible_host=localhost ansible_private_key_file=/root/.ssh/id_rsa
+ubuntu2 ansible_user=root ansible_port=2001 ansible_host=localhost ansible_private_key_file=/root/.ssh/id_rsa
+ubuntu3 ansible_user=root ansible_port=2002 ansible_host=localhost ansible_private_key_file=/root/.ssh/id_rsa
+
+[dev_server]
+ubuntu1
+
+[QA_server]
+ubuntu1
+ubuntu2
+
+[Prod Server]
+ubuntu3
+
+Note: for telling range of servers we can give like below,
+[QA_server]
+ubuntu[1:2]
+
+Output:
+---------
+
+root@ubuntu:~/verizon/Day2/ansible# ansible -i hosts dev_server -m ping
+ubuntu1 | SUCCESS => {
+    "changed": false, 
+    "ping": "pong"
+}
+root@ubuntu:~/verizon/Day2/ansible# ansible -i hosts QA_server -m ping
+ubuntu2 | SUCCESS => {
+    "changed": false, 
+    "ping": "pong"
+}
+ubuntu1 | SUCCESS => {
+    "changed": false, 
+    "ping": "pong"
+}
+
+
+ANSIBLE PLAYBOOK
+-------------------
+
+root@ubuntu:~/verizon/Day2/ansible# vim ping.yml
+
+root@ubuntu:~/verizon/Day2/ansible# cat ping.yml 
+- name: This play demonstrates the use of ping module
+  hosts: all
+  tasks: 
+   - name: Ping the docker container
+     ping:
+
+root@ubuntu:~/verizon/Day2/ansible# ansible-playbook -i hosts ping.yml 
+
+PLAY [This play demonstrates the use of ping module] *****************************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************
+ok: [ubuntu2]
+ok: [ubuntu3]
+ok: [ubuntu1]
+
+TASK [Ping the docker container] *************************************************************************************************************
+ok: [ubuntu3]
+ok: [ubuntu1]
+ok: [ubuntu2]
+
+PLAY RECAP ***********************************************************************************************************************************
+ubuntu1                    : ok=2    changed=0    unreachable=0    failed=0   
+ubuntu2                    : ok=2    changed=0    unreachable=0    failed=0   
+ubuntu3                    : ok=2    changed=0    unreachable=0    failed=0   
+
+root@ubuntu:~/verizon/Day2/ansible# 
+
+Note: Gather facts will be by default to true and runs for all playbook unless specifially set to false as shown below.
+
+To run for groups we run it as seperate tasks in single playbooks
+-----------------------------------
+
+root@ubuntu:~/verizon/Day2/ansible# cat ping.yml 
+- name: This play demonstrates the use of ping module of dev hosts
+  hosts: dev
+  gather_facts: false
+  tasks: 
+   - name: Ping the docker dev container
+     ping: 
+
+- name: This play demonstrates the use of ping module of qa hosts
+  hosts: qa
+  tasks: 
+   - name: Ping the docker qa container
+     ping:
+
+- name: This play demonstrates the use of ping module of prod hosts
+  hosts: prod
+  tasks: 
+   - name: Ping the docker prod container
+     ping:
+
+Output:
+-------
+root@ubuntu:~/verizon/Day2/ansible# ansible-playbook -i hosts ping.yml 
+
+PLAY [This play demonstrates the use of ping module of dev hosts] ****************************************************************************
+
+TASK [Ping the docker dev container] *********************************************************************************************************
+ok: [ubuntu1]
+
+PLAY [This play demonstrates the use of ping module of qa hosts] *****************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************
+ok: [ubuntu1]
+ok: [ubuntu2]
+
+TASK [Ping the docker qa container] **********************************************************************************************************
+ok: [ubuntu1]
+ok: [ubuntu2]
+
+PLAY [This play demonstrates the use of ping module of prod hosts] ***************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************
+ok: [ubuntu3]
+
+TASK [Ping the docker prod container] ********************************************************************************************************
+ok: [ubuntu3]
+
+PLAY RECAP ***********************************************************************************************************************************
+ubuntu1                    : ok=3    changed=0    unreachable=0    failed=0   
+ubuntu2                    : ok=2    changed=0    unreachable=0    failed=0   
+ubuntu3                    : ok=2    changed=0    unreachable=0    failed=0   
+
+to get the output saved to a file
+------------------------------
+root@ubuntu:~/verizon/Day2/ansible# ansible-playbook -i hosts ping.yml > out.log
+
+To get teh details of installed locations for troubleshooting (provide -v for verbose)
+-----------------------------
+
+root@ubuntu:~/verizon/Day2/ansible# ansible -i hosts all -m ping -vv
+ansible 2.5.1
+  config file = /etc/ansible/ansible.cfg
+  configured module search path = [u'/root/.ansible/plugins/modules', u'/usr/share/ansible/plugins/modules']
+  ansible python module location = /usr/lib/python2.7/dist-packages/ansible
+  executable location = /usr/bin/ansible
+  python version = 2.7.15rc1 (default, Apr 15 2018, 21:51:34) [GCC 7.3.0]
+Using /etc/ansible/ansible.cfg as config file
+META: ran handlers
+ubuntu3 | SUCCESS => {
+    "changed": false, 
+    "ping": "pong"
+}
+ubuntu1 | SUCCESS => {
+    "changed": false, 
+    "ping": "pong"
+}
+ubuntu2 | SUCCESS => {
+    "changed": false, 
+    "ping": "pong"
+}
+META: ran handlers
+META: ran handlers
+root@ubuntu:~/verizon/Day2/ansible# 
+
+To get readily available modules (do an ansible --version cmd and go to ansible python module location /modules)
+--------------------------------------------------------------------------------
+root@ubuntu:/usr/lib/python2.7/dist-packages/ansible/modules# pwd
+/usr/lib/python2.7/dist-packages/ansible/modules
+
+to do the list of modules
+-----------------------
+ansible-doc -l
+
+Eg: ansible-doc ping (for getting more details on single module)
+
+Now change one port so that host will fail
+-----------------
+root@ubuntu:~/verizon/Day2/ansible# ansible-playbook -i hosts ping.yml
+
+PLAY [This play demonstrates the use of ping module of dev hosts] ****************************************************************************
+
+TASK [Ping the docker dev container] *********************************************************************************************************
+ok: [ubuntu1]
+
+PLAY [This play demonstrates the use of ping module of qa hosts] *****************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************
+ok: [ubuntu1]
+ok: [ubuntu2]
+
+TASK [Ping the docker qa container] **********************************************************************************************************
+ok: [ubuntu1]
+ok: [ubuntu2]
+
+PLAY [This play demonstrates the use of ping module of prod hosts] ***************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************
+fatal: [ubuntu3]: UNREACHABLE! => {"changed": false, "msg": "Failed to connect to the host via ssh: ssh: connect to host localhost port 2004: Connection refused\r\n", "unreachable": true}
+	to retry, use: --limit @/root/verizon/Day2/ansible/ping.retry
+
+PLAY RECAP ***********************************************************************************************************************************
+ubuntu1                    : ok=3    changed=0    unreachable=0    failed=0   
+ubuntu2                    : ok=2    changed=0    unreachable=0    failed=0   
+ubuntu3                    : ok=0    changed=0    unreachable=1    failed=0   
+
+root@ubuntu:~/verizon/Day2/ansible# 
+
+Now we can see a file called ping.retry that will have the host for which it failed. When running with this file next time it will execute the playbook tasks only on this host
+------------------
+
+root@ubuntu:~/verizon/Day2/ansible# ls -lrth
+total 20K
+drwxr-xr-x 3 root root 4.0K Sep  3 22:04 ubuntu-ansible
+-rw-r--r-- 1 root root  451 Sep  4 01:47 ping.yml
+-rw-r--r-- 1 root root 1.6K Sep  4 02:12 out.log
+-rw-r--r-- 1 root root  385 Sep  4 02:23 hosts
+-rw-r--r-- 1 root root    8 Sep  4 02:23 ping.retry
+root@ubuntu:~/verizon/Day2/ansible# 
+
+Now make the correction to the port and retry with the below,
+------------------------------------
+
+root@ubuntu:~/verizon/Day2/ansible# ansible-playbook -i hosts ping.yml --limit @/root/verizon/Day2/ansible/ping.retry
+
+PLAY [This play demonstrates the use of ping module of dev hosts] ****************************************************************************
+skipping: no hosts matched
+
+PLAY [This play demonstrates the use of ping module of qa hosts] *****************************************************************************
+skipping: no hosts matched
+
+PLAY [This play demonstrates the use of ping module of prod hosts] ***************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************
+ok: [ubuntu3]
+
+TASK [Ping the docker prod container] ********************************************************************************************************
+ok: [ubuntu3]
+
+PLAY RECAP ***********************************************************************************************************************************
+ubuntu3                    : ok=2    changed=0    unreachable=0    failed=0   
+
+root@ubuntu:~/verizon/Day2/ansible# 
+
+
+Now write a playbook to install vim and tree
+--------------------------
+
+Before performing do an update of teh repo that can be taken care with update_cache=yes
+
+root@ubuntu:~/verizon/Day2/ansible# cat installvimandtree.yml 
+- name: Demo for use of apt module
+  hosts: all
+  tasks: 
+   - name: Install vim editor
+     apt: name=vim state=latest update_cache=yes
+
+   - name: Install tree utility
+     apt: name=tree state=present update_cache=yes
+root@ubuntu:~/verizon/Day2/ansible# 
+root@ubuntu:~/verizon/Day2/ansible# ansible-playbook -i hosts installvimandtree.yml 
+
+PLAY [Demo for use of apt module] ************************************************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************
+ok: [ubuntu2]
+ok: [ubuntu1]
+ok: [ubuntu3]
+
+TASK [Install vim editor] ********************************************************************************************************************
+changed: [ubuntu2]
+changed: [ubuntu3]
+changed: [ubuntu1]
+
+TASK [Install tree utility] ******************************************************************************************************************
+changed: [ubuntu1]
+changed: [ubuntu2]
+changed: [ubuntu3]
+
+PLAY RECAP ***********************************************************************************************************************************
+ubuntu1                    : ok=3    changed=2    unreachable=0    failed=0   
+ubuntu2                    : ok=3    changed=2    unreachable=0    failed=0   
+ubuntu3                    : ok=3    changed=2    unreachable=0    failed=0   
+
+We can check the output thro ansible adhoc cmd
+----------------------------------
+root@ubuntu:~/verizon/Day2/ansible# ansible -i hosts ubuntu2 -m shell -a "tree /etc"
+ubuntu2 | SUCCESS | rc=0 >>
+/etc
+|-- X11
+|   `-- xinit
+|       `-- xinitrc.d
+|-- adduser.conf
+|-- alternatives
+|   |-- README
+.
+.
+.
+.
+|-- wgetrc
+`-- xdg
+    `-- systemd
+        `-- user -> ../../systemd/user
+
+80 directories, 775 files
+
+To installing,config and deployment of webpage to nginx web server 
+----------------------------------------------------------------------
+
+root@ubuntu:~/verizon/Day2/ansible# cat installnginx.yml 
+- name: Demo for installing,config and deployment of webpage to nginx web server 
+  hosts: all
+  become: yes
+  tasks: 
+   #This is a comment
+   - name: Install nginx web server
+     apt: name=nginx state=latest update_cache=yes
+
+root@ubuntu:~/verizon/Day2/ansible# ansible-playbook -i hosts installnginx.yml 
+
+PLAY [Demo for installing,config and deployment of webpage to nginx web server] **************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************
+ok: [ubuntu2]
+ok: [ubuntu3]
+ok: [ubuntu1]
+
+TASK [Install nginx web server] **************************************************************************************************************
+changed: [ubuntu3]
+changed: [ubuntu2]
+changed: [ubuntu1]
+
+PLAY RECAP ***********************************************************************************************************************************
+ubuntu1                    : ok=2    changed=1    unreachable=0    failed=0   
+ubuntu2                    : ok=2    changed=1    unreachable=0    failed=0   
+ubuntu3                    : ok=2    changed=1    unreachable=0    failed=0   
+
+Verify by connecting the machine
+----------------------
+root@ubuntu1:~# cd /etc/n
+network/       networks       nginx/         nsswitch.conf  
+
+Copy the default frile from ubuntu1 (/etc/nginx/sites-available/default) to local
+----------
+oot@ubuntu:~/verizon/Day2/ansible# docker cp ubuntu1:/etc/nginx/sites-available/default default
+root@ubuntu:~/verizon/Day2/ansible# ls -lrth
+total 44K
+-rw-r--r-- 1 root root 2.1K Feb 11  2017 default
+
+Modify the contents (modify the root default to  #Configured by Arun for verizon).
+/var/html
+
+So by this the default page becomes /var/html where we are going to replace the html contents as below on index.html.js
+
+Next create a installnginx.yml file and make ready of index.html.js
+-----------------------------------------
+
+root@ubuntu:~/verizon/Day2/ansible# cat installnginx.yml
+- name: Demo for installing,config and deployment of webpage to nginx web server 
+  hosts: all
+  become: yes
+  vars: 
+   - greeting_msg: Devops
+   - provitioner_tool: Docker
+   - automation_tool: Ansible  
+  tasks: 
+   #This is a comment
+   - name: Install nginx web server
+     apt: 
+       name: nginx 
+       state: latest 
+       update_cache: yes
+
+   - name: Configure nginx web root folder 
+     copy: src=default dest=/etc/nginx/sites-available/default
+
+   - name: Restart the nginx server
+     command: service nginx restart
+   
+   - name: Create the web root folder
+     file: path=/var/html state=directory mode=0777
+   
+   - name: Deploy a web page into nginx web server
+     template: src=index.html.j2 dest=/var/html/index.html 
+root@ubuntu:~/verizon/Day2/ansible# 
+
+
+root@ubuntu:~/verizon/Day2/ansible# cat index.html.j2
+<html>
+	<title>Welcome to {{greeting_msg}}</title>
+	<body>
+		<h1>Provitioner Tool used is {{provitioner_tool}}</h1>
+		<h1>Automation Tool used is {{automation_tool}}</h1>
+	</body>
+</html>
+
+Now execute teh playbook,
+-----------------------
+root@ubuntu:~/verizon/Day2/ansible# ansible-playbook -i hosts installnginx.yml 
+
+PLAY [Demo for installing,config and deployment of webpage to nginx web server] **************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************
+ok: [ubuntu1]
+ok: [ubuntu2]
+ok: [ubuntu3]
+
+TASK [Install nginx web server] **************************************************************************************************************
+ok: [ubuntu2]
+ok: [ubuntu3]
+ok: [ubuntu1]
+
+TASK [Configure nginx web root folder] *******************************************************************************************************
+changed: [ubuntu3]
+changed: [ubuntu1]
+changed: [ubuntu2]
+
+TASK [Restart the nginx server] **************************************************************************************************************
+ [WARNING]: Consider using the service module rather than running service.  If you need to use command because service is insufficient you
+can add warn=False to this command task or set command_warnings=False in ansible.cfg to get rid of this message.
+
+changed: [ubuntu3]
+changed: [ubuntu1]
+changed: [ubuntu2]
+
+TASK [Create the web root folder] ************************************************************************************************************
+changed: [ubuntu3]
+changed: [ubuntu1]
+changed: [ubuntu2]
+
+TASK [Deploy a web page into nginx web server] ***********************************************************************************************
+changed: [ubuntu3]
+changed: [ubuntu1]
+changed: [ubuntu2]
+
+PLAY RECAP ***********************************************************************************************************************************
+ubuntu1                    : ok=6    changed=4    unreachable=0    failed=0   
+ubuntu2                    : ok=6    changed=4    unreachable=0    failed=0   
+ubuntu3                    : ok=6    changed=4    unreachable=0    failed=0   
+
+Now check the changes are deployed in the containers, connect the container abnd check the file /etc/nginx/sites-available/default
+
+Also go to url and type localhost:8000 or the port of the container then get the page with provoded details.
+
+
+We can re-write the playbook in a much simpler way by modifying the yml file
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,320 @@
+Day3 - Ansible
+-----------------
+Grouuping the info with folders
+root@ubuntu:~/verizon# mkdir Day3
+root@ubuntu:~/verizon# cd Day3/
+root@ubuntu:~/verizon/Day3# docker ps
+CONTAINER ID        IMAGE                    COMMAND               CREATED             STATUS              PORTS                                        NAMES
+f17825cdffcf        verizon/ansible-ubuntu   "/usr/sbin/sshd -D"   22 hours ago        Up 17 hours         0.0.0.0:2002->22/tcp, 0.0.0.0:8002->80/tcp   ubuntu3
+cb673103fe9f        verizon/ansible-ubuntu   "/usr/sbin/sshd -D"   22 hours ago        Up 17 hours         0.0.0.0:2001->22/tcp, 0.0.0.0:8001->80/tcp   ubuntu2
+19d5af557c82        verizon/ansible-ubuntu   "/usr/sbin/sshd -D"   23 hours ago        Up 17 hours         0.0.0.0:2000->22/tcp, 0.0.0.0:8000->80/tcp   ubuntu1
+root@ubuntu:~/verizon/Day3# vim hosts
+root@ubuntu:~/verizon/Day3# cat hosts 
+[all]
+ubuntu[1:3]
+
+[dev]
+ubuntu1
+
+[qa]
+ubuntu[1:2]
+
+[prod]
+ubuntu3
+
+root@ubuntu:~/verizon/Day3# mkdir host_vars group_vars
+root@ubuntu:~/verizon/Day3# ls -lrth
+total 12K
+-rw-r--r-- 1 root root   68 Sep  4 21:24 hosts
+drwxr-xr-x 2 root root 4.0K Sep  4 21:24 host_vars
+drwxr-xr-x 2 root root 4.0K Sep  4 21:24 group_vars
+
+Create 3 files under host_vars
+-------------------------------
+root@ubuntu:~/verizon/Day3# touch ubuntu1 ubuntu2 ubuntu3
+root@ubuntu:~/verizon/Day3# echo "ansible_port: 2000" > ubuntu1
+root@ubuntu:~/verizon/Day3# echo "ansible_port: 2001" > ubuntu2
+root@ubuntu:~/verizon/Day3# echo "ansible_port: 2003" > ubuntu3
+root@ubuntu:~/verizon/Day3# 
+root@ubuntu:~/verizon/Day3# 
+root@ubuntu:~/verizon/Day3# cat ubuntu1
+ansible_port: 2000
+root@ubuntu:~/verizon/Day3# cat ubuntu2
+ansible_port: 2001
+root@ubuntu:~/verizon/Day3# cat ubuntu3
+ansible_port: 2003
+
+root@ubuntu:~/verizon/Day3# tree
+.
+├── group_vars
+├── hosts
+└── host_vars
+    ├── ubuntu1
+    ├── ubuntu2
+    └── ubuntu3
+
+2 directories, 4 files
+
+Create a file for group params (common parms file named after all group under group_vars)
+----------------------------------
+
+root@ubuntu:~/verizon/Day3# cd group_vars/
+root@ubuntu:~/verizon/Day3/group_vars# vim all
+root@ubuntu:~/verizon/Day3/group_vars# cat all 
+ansible_user: root
+ansible_become_user: root
+ansible_become_password: root
+ansible_host: localhost
+ansible_private_key_file: /root/.ssh/id_rsa
+root@ubuntu:~/verizon/Day3/group_vars# 
+
+Run the ping command
+------------------------
+root@ubuntu:~/verizon/Day3# ansible -i hosts all -m ping
+ubuntu2 | SUCCESS => {
+    "changed": false, 
+    "ping": "pong"
+}
+ubuntu1 | SUCCESS => {
+    "changed": false, 
+    "ping": "pong"
+}
+ubuntu3 | SUCCESS => {
+    "changed": false, 
+    "ping": "pong"
+}
+
+Run with ansible config file
+-----------------------
+
+Create a config file ansible.cfg and mark the inventory details to it.,
+
+root@ubuntu:~/verizon/Day3# cat ansible.cfg 
+[defaults]
+inventory=hosts
+root@ubuntu:~/verizon/Day3# ansible all -m ping
+ubuntu2 | SUCCESS => {
+    "changed": false, 
+    "ping": "pong"
+}
+ubuntu1 | SUCCESS => {
+    "changed": false, 
+    "ping": "pong"
+}
+ubuntu3 | SUCCESS => {
+    "changed": false, 
+    "ping": "pong"
+}
+root@ubuntu:~/verizon/Day3#
+
+
+
+Download/clone the centos-passwordless image from github
+--------------------------
+oot@ubuntu:~/verizon/Day3 # git clone https://github.com/tektutor/centos-sshd-passwordless.git
+
+
+root@ubuntu:~/verizon/Day3/centos-sshd-passwordless# ls -lrth
+total 68K
+-rw-r--r-- 1 root root  458 Sep  4 23:00 sudoers
+-rw-r--r-- 1 root root 2.5K Sep  4 23:00 sshd_config
+-rw-r--r-- 1 root root  41K Sep  4 23:00 myproject.log
+-rw-r--r-- 1 root root  305 Sep  4 23:00 inventory
+-rw-r--r-- 1 root root  829 Sep  4 23:00 installapache.yml
+-rw-r--r-- 1 root root  852 Sep  4 23:00 Dockerfile
+-rw-r--r-- 1 root root  179 Sep  4 23:00 ansible.cfg
+
+Copy the publick key to authorized keys
+------------------------
+
+root@ubuntu:~/verizon/Day3/centos-sshd-passwordless# cp /root/.ssh/id_rsa.pub authorized_keys
+root@ubuntu:~/verizon/Day3/centos-sshd-passwordless# ls -lrth
+total 72K
+-rw-r--r-- 1 root root  458 Sep  4 23:00 sudoers
+-rw-r--r-- 1 root root 2.5K Sep  4 23:00 sshd_config
+-rw-r--r-- 1 root root  41K Sep  4 23:00 myproject.log
+-rw-r--r-- 1 root root  305 Sep  4 23:00 inventory
+-rw-r--r-- 1 root root  829 Sep  4 23:00 installapache.yml
+-rw-r--r-- 1 root root  852 Sep  4 23:00 Dockerfile
+-rw-r--r-- 1 root root  179 Sep  4 23:00 ansible.cfg
+-rw-r--r-- 1 root root  393 Sep  4 23:04 authorized_keys
+
+
+Edit the Dockerfile with below contents
+------------------------
+root@ubuntu:~/verizon/Day3/centos-sshd-passwordless# cat Dockerfile 
+FROM centos:6.7 
+MAINTAINER Jeganathan Swaminathan <jegan@tektutor.org> <http://www.tektutor.org> 
+
+RUN yum install -y openssh-server openssh-clients
+
+# Set the password of root user to root
+RUN echo 'root:root' | chpasswd
+
+RUN usermod -aG wheel root 
+
+RUN sed -ri 's/^session\s+required\s+pam_loginuid.so$/session optional pam_loginuid.so/' /etc/pam.d/sshd
+
+# Disable root login &
+# Disable password login, only allow public key. 
+COPY sshd_config /etc/ssh/sshd_config
+COPY sudoers /etc/sudoers
+
+RUN mkdir -p /root/.ssh
+COPY authorized_keys /root/.ssh/authorized_keys
+
+# Add sshd running directory.
+RUN mkdir -m 700 /var/run/sshd
+
+# Add ssh key directory.
+RUN /sbin/service sshd start && /sbin/service sshd stop
+
+EXPOSE 22
+EXPOSE 80
+CMD ["/usr/sbin/sshd", "-D"]
+
+Now build a new docker image with centos
+---------------------------------
+
+root@ubuntu:~/verizon/Day3/centos-sshd-passwordless# docker images
+REPOSITORY               TAG                 IMAGE ID            CREATED             SIZE
+verizon/ansible-ubuntu   latest              5b27e1379914        25 hours ago        234MB
+wordpress                latest              41e689eea0cd        4 days ago          408MB
+nginx                    latest              71c43202b8ac        6 days ago          109MB
+ubuntu                   16.04               52b10959e8aa        13 days ago         115MB
+ubuntu                   latest              16508e5c265d        13 days ago         84.1MB
+mysql                    latest              29e0ae3b69b9        3 weeks ago         484MB
+bash                     latest              505b35eff06a        5 weeks ago         14MB
+hello-world              latest              2cb0d9787c4d        8 weeks ago         1.85kB
+root@ubuntu:~/verizon/Day3/centos-sshd-passwordless# 
+root@ubuntu:~/verizon/Day3/centos-sshd-passwordless# 
+root@ubuntu:~/verizon/Day3/centos-sshd-passwordless# docker build -t verizon/ansible-centos .
+Sending build context to Docker daemon  130.6kB
+Step 1/15 : FROM centos:6.7
+.
+.
+.
+Stopping sshd: [  OK  ]
+Removing intermediate container ad248e09b30b
+ ---> cdfcc74189d6
+Step 13/15 : EXPOSE 22
+ ---> Running in 85dbcc716bdd
+Removing intermediate container 85dbcc716bdd
+ ---> 3e11dd30f694
+Step 14/15 : EXPOSE 80
+ ---> Running in 974ba4728cb1
+Removing intermediate container 974ba4728cb1
+ ---> af461f8b5a25
+Step 15/15 : CMD ["/usr/sbin/sshd", "-D"]
+ ---> Running in e349abf8e234
+Removing intermediate container e349abf8e234
+ ---> 2f24e301bb78
+Successfully built 2f24e301bb78
+Successfully tagged verizon/ansible-centos:latest
+
+
+root@ubuntu:~/verizon/Day3/centos-sshd-passwordless# docker images | grep verizon
+verizon/ansible-centos   latest              2f24e301bb78        5 minutes ago       285MB
+verizon/ansible-ubuntu   latest              5b27e1379914        25 hours ago        234MB
+
+root@ubuntu:~/verizon/Day3/centos-sshd-passwordless# 
+
+
+Now we are going to create centos containers
+--------------------------------------------
+
+root@ubuntu:~/verizon/Day3/centos-sshd-passwordless# docker run -d --name centos1 --hostname centos1 -p 3000:22 -p 9000:80 verizon/ansible-centos
+39f0807f0d58a3d18cdd250fb8a4844c635c507213e0c1ded538299c0aab809b
+root@ubuntu:~/verizon/Day3/centos-sshd-passwordless# docker run -d --name centos2 --hostname centos2 -p 3001:22 -p 9001:80 verizon/ansible-centos
+e82a52a605674d5c245676664c442d169d2da68da027b8a0535cb38ebd11d5ab
+root@ubuntu:~/verizon/Day3/centos-sshd-passwordless# docker run -d --name centos3 --hostname centos3 -p 3002:22 -p 9002:80 verizon/ansible-centos
+6e2ad652fcca242284a0d7c9200939210a1c2a37aeb247e208256bf06226fc10
+root@ubuntu:~/verizon/Day3/centos-sshd-passwordless# 
+
+
+Note: We dont want to specify any bash -d as we have done it at image level using CMD ["/usr/sbin/sshd", "-D"] at Dockerfile.
+
+
+Quick check to see if the containers are getting worked with ssh
+------------------------------------
+root@ubuntu:~/verizon/Day3/centos-sshd-passwordless# ssh -p 3000 root@localhost
+The authenticity of host '[localhost]:3000 ([127.0.0.1]:3000)' can't be established.
+RSA key fingerprint is SHA256:SISWSG675W77tIuIva/azCqLOergGdbgYctBePrcdMg.
+Are you sure you want to continue connecting (yes/no)? yes
+Warning: Permanently added '[localhost]:3000' (RSA) to the list of known hosts.
+[root@centos1 ~]# exit
+logout
+Connection to localhost closed.
+root@ubuntu:~/verizon/Day3/centos-sshd-passwordless# ssh -p 3001 root@localhost
+The authenticity of host '[localhost]:3001 ([127.0.0.1]:3001)' can't be established.
+RSA key fingerprint is SHA256:SISWSG675W77tIuIva/azCqLOergGdbgYctBePrcdMg.
+Are you sure you want to continue connecting (yes/no)? yes
+Warning: Permanently added '[localhost]:3001' (RSA) to the list of known hosts.
+[root@centos2 ~]# exit
+logout
+Connection to localhost closed.
+root@ubuntu:~/verizon/Day3/centos-sshd-passwordless# ssh -p 3002 root@localhost
+The authenticity of host '[localhost]:3002 ([127.0.0.1]:3002)' can't be established.
+RSA key fingerprint is SHA256:SISWSG675W77tIuIva/azCqLOergGdbgYctBePrcdMg.
+Are you sure you want to continue connecting (yes/no)? yes
+Warning: Permanently added '[localhost]:3002' (RSA) to the list of known hosts.
+[root@centos3 ~]# exit
+logout
+Connection to localhost closed.
+
+
+Now edit the hosts file
+--------------------
+root@ubuntu:~/verizon/Day3# cat hosts
+[all]
+ubuntu[1:3]
+centos[1:3]
+
+[dev]
+ubuntu1
+centos1
+
+[qa]
+ubuntu[1:2]
+centos[1:2]
+
+[prod]
+ubuntu3
+centos3
+
+Make ready of the host_vars file (just add the port numbers)
+
+root@ubuntu:~/verizon/Day3# cd host_vars/
+root@ubuntu:~/verizon/Day3/host_vars# echo "ansible_port: 3000" > centos1
+root@ubuntu:~/verizon/Day3/host_vars# echo "ansible_port: 3001" > centos2
+root@ubuntu:~/verizon/Day3/host_vars# echo "ansible_port: 3002" > centos3
+root@ubuntu:~/verizon/Day3/host_vars# 
+
+Final structure
+---------------
+root@ubuntu:~/verizon/Day3# tree
+.
+├── ansible.cfg
+├── centos-sshd-passwordless
+│   ├── ansible.cfg
+│   ├── authorized_keys
+│   ├── Dockerfile
+│   ├── installapache.yml
+│   ├── inventory
+│   ├── myproject.log
+│   ├── sshd_config
+│   └── sudoers
+├── group_vars
+│   └── all
+├── hosts
+└── host_vars
+    ├── centos1
+    ├── centos2
+    ├── centos3
+    ├── ubuntu1
+    ├── ubuntu2
+    └── ubuntu3
+
+3 directories, 17 files
+
+

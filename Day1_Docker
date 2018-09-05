@@ -1,0 +1,543 @@
+to view all images (despite the running status)
+-----------------------
+root@ubuntu:~# docker ps -a
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS                      PORTS                 NAMES
+cf3c551b5936        mysql:8.0.12        "docker-entrypoint.s…"   14 minutes ago      Up 13 minutes               3306/tcp, 33060/tcp   arunmysql
+3de19c7ce1b0        hello-world         "/hello"                 24 minutes ago      Exited (0) 24 minutes ago                         eager_jennings
+5026d20c7793        ubuntu              "bash"                   4 days ago          Exited (127) 4 days ago                           optimistic_allen
+root@ubuntu:~# 
+
+to remove images (first remove container)
+---------------
+root@ubuntu:~# docker rmi mysql:8.0.12
+Error response from daemon: conflict: unable to remove repository reference "mysql:8.0.12" (must force) - container cf3c551b5936 is using its referenced image 29e0ae3b69b9
+root@ubuntu:~# 
+root@ubuntu:~# 
+
+to remove cont (first shut it)
+----------------------
+root@ubuntu:~# docker rm cf3c551b5936
+Error response from daemon: You cannot remove a running container cf3c551b59368c62bd891b8b0a658f306a4e1f89c25d5a1897ba998b903d168c. Stop the container before attempting removal or force remove
+
+to stop a container
+-------------------
+root@ubuntu:~# docker stop cf3c551b5936
+cf3c551b5936
+
+to remove container
+-----------------
+root@ubuntu:~# docker rm cf3c551b5936
+cf3c551b5936
+
+root@ubuntu:~# docker images
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+ubuntu              latest              16508e5c265d        11 days ago         84.1MB
+mysql               8.0.12              29e0ae3b69b9        2 weeks ago         484MB
+hello-world         latest              2cb0d9787c4d        7 weeks ago         1.85kB
+root@ubuntu:~# docker ps -a
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS                      PORTS               NAMES
+3de19c7ce1b0        hello-world         "/hello"            27 minutes ago      Exited (0) 27 minutes ago                       eager_jennings
+5026d20c7793        ubuntu              "bash"              4 days ago          Exited (127) 4 days ago                         optimistic_allen
+root@ubuntu:~# 
+
+
+root@ubuntu:~# docker ps -a
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS                      PORTS                 NAMES
+cf3c551b5936        mysql:8.0.12        "docker-entrypoint.s…"   14 minutes ago      Up 13 minutes               3306/tcp, 33060/tcp   arunmysql
+3de19c7ce1b0        hello-world         "/hello"                 24 minutes ago      Exited (0) 24 minutes ago                         eager_jennings
+5026d20c7793        ubuntu              "bash"                   4 days ago          Exited (127) 4 days ago                           optimistic_allen
+root@ubuntu:~# 
+
+root@ubuntu:~# docker stop cf3c551b5936
+cf3c551b5936
+root@ubuntu:~# docker rm cf3c551b5936
+cf3c551b5936
+root@ubuntu:~# docker images
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+ubuntu              latest              16508e5c265d        11 days ago         84.1MB
+mysql               8.0.12              29e0ae3b69b9        2 weeks ago         484MB
+hello-world         latest              2cb0d9787c4d        7 weeks ago         1.85kB
+root@ubuntu:~# docker ps -a
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS                      PORTS               NAMES
+3de19c7ce1b0        hello-world         "/hello"            27 minutes ago      Exited (0) 27 minutes ago                       eager_jennings
+5026d20c7793        ubuntu              "bash"              4 days ago          Exited (127) 4 days ago                         optimistic_allen
+root@ubuntu:~# 
+
+to start a cont
+---------------
+root@ubuntu:~# docker start 424bd0050d82
+424bd0050d82
+root@ubuntu:~# docker ps -a
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS                      PORTS               NAMES
+424bd0050d82        ubuntu              "/bin/bash"         3 minutes ago       Up 3 seconds                                    stupefied_austin
+3de19c7ce1b0        hello-world         "/hello"            35 minutes ago      Exited (0) 34 minutes ago                       eager_jennings
+5026d20c7793        ubuntu              "bash"              4 days ago          Exited (127) 4 days ago                         optimistic_allen
+
+to get into docker container
+-------------
+root@ubuntu:~# docker exec -it 424bd0050d82 bash
+root@424bd0050d82:/# 
+
+
+To list all images
+------
+
+root@ubuntu:~# docker images
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+ubuntu              latest              16508e5c265d        11 days ago         84.1MB
+hello-world         latest              2cb0d9787c4d        7 weeks ago         1.85kB
+
+to get more details or inspect more about
+--------------------------
+root@ubuntu:~# docker image inspect ubuntu:latest
+
+to create a container
+----------------
+root@ubuntu:~# docker run -it --name server1 --hostname server1.ubuntu bash
+
+root@ubuntu:~# docker run -it --name server1 --hostname server1.ubuntu bash
+docker: Error response from daemon: Conflict. The container name "/server1" is already in use by container "166c234799eb8dcd8a232a9c2f8558bf89ed82802ec682e12b10ff559ffc91a3". You have to remove (or rename) that container to be able to reuse that name.
+See 'docker run --help'.
+root@ubuntu:~# docker run -it --name server2 --hostname server2.ubuntu bash
+bash-4.4# exit
+exit
+root@ubuntu:~# docker run -it --name server3 --hostname server3.ubuntu bash
+bash-4.4# exit
+exit
+
+to run from background
+-------------
+root@ubuntu:~# docker run -dit --name server1 --hostname server1.ubuntu bash
+
+To view more details about the container 
+-------------------
+root@ubuntu:~# docker inspect server1
+
+
+to grep details like IP address
+-----------------
+
+root@ubuntu:~# docker inspect server1 | grep IPA
+            "SecondaryIPAddresses": null,
+            "IPAddress": "",
+                    "IPAMConfig": null,
+                    "IPAddress": "",
+root@ubuntu:~# 
+
+to start a container
+-----------------
+root@ubuntu:~# docker start /server2
+/server2
+root@ubuntu:~# docker start /server1
+/server1
+root@ubuntu:~# docker start /server3
+/server3
+root@ubuntu:~# docker ps -q
+ef488aa171b6
+31d04c5d5d1a
+166c234799eb
+424bd0050d82
+root@ubuntu:~# docker ps 
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS               NAMES
+ef488aa171b6        bash                "docker-entrypoint.s…"   37 minutes ago      Up 13 seconds                           server3
+31d04c5d5d1a        bash                "docker-entrypoint.s…"   38 minutes ago      Up 5 minutes                            server2
+166c234799eb        bash                "docker-entrypoint.s…"   39 minutes ago      Up 17 seconds                           server1
+424bd0050d82        ubuntu              "/bin/bash"              2 hours ago         Up 2 hours                              stupefied_austin
+root@ubuntu:~# 
+
+to install nginx
+----------------
+root@ubuntu:~# docker run -d --name nginx1 --hostname nginx nginx
+Unable to find image 'nginx:latest' locally
+latest: Pulling from library/nginx
+be8881be8156: Pull complete 
+65206e5c5e2d: Pull complete 
+8e029c3e2376: Pull complete 
+Digest: sha256:1b109555ad28bb5ec429422ee136c5f5ab5ee6faaeb518836a5c9a3b6436a1bd
+Status: Downloaded newer image for nginx:latest
+54ea82624936c61dc3c262eb3bb433c0286cbd3d0388ae2e2da193e5e71de657
+root@ubuntu:~# 
+
+to get IP of the container
+--------------
+root@ubuntu:~# docker inspect nginx1 | grep IPA
+            "SecondaryIPAddresses": null,
+            "IPAddress": "172.17.0.6",
+                    "IPAMConfig": null,
+                    "IPAddress": "172.17.0.6",
+root@ubuntu:~# ping 172.17.0.6
+PING 172.17.0.6 (172.17.0.6) 56(84) bytes of data.
+64 bytes from 172.17.0.6: icmp_seq=1 ttl=64 time=0.126 ms
+64 bytes from 172.17.0.Monday 03 September 2018 6: icmp_seq=2 ttl=64 time=0.114 ms
+64 bytes from 172.17.0.6: icmp_seq=14 ttl=64 time=0.120 ms
+^Z
+[1]+  Stopped                 ping 172.17.0.6
+root@ubuntu:~# 
+
+to check 
+root@ubuntu:~# curl http://172.17.0.6
+
+Command 'curl' not found, but can be installed with:
+
+apt install curl
+
+root@ubuntu:~# apt install curl
+Reading package lists... Done
+Building dependency tree       
+Reading state information... Done
+The following additional packages will be installed:
+  libcurl4
+The following NEW packages will be installed:
+  curl libcurl4
+0 upgraded, 2 newly installed, 0 to remove and 40 not upgraded.
+Need to get 373 kB of archives.
+After this operation, 1,036 kB of additional disk space will be used.
+Do you want to continue? [Y/n] y
+Get:1 http://us.archive.ubuntu.com/ubuntu bionic-updates/main amd64 libcurl4 amd64 7.58.0-2ubuntu3.2 [214 kB]
+Get:2 http://us.archive.ubuntu.com/ubuntu bionic-updates/main amd64 curl amd64 7.58.0-2ubuntu3.2 [159 kB]                                    
+Fetched 373 kB in 23s (16.5 kB/s)
+Selecting previously unselected package libcurl4:amd64.
+(Reading database ... 171258 files and directories currently installed.)
+Preparing to unpack .../libcurl4_7.58.0-2ubuntu3.2_amd64.deb ...
+Unpacking libcurl4:amd64 (7.58.0-2ubuntu3.2) ...
+Selecting previously unselected package curl.
+Preparing to unpack .../curl_7.58.0-2ubuntu3.2_amd64.deb ...
+Unpacking curl (7.58.0-2ubuntu3.2) ...
+Setting up libcurl4:amd64 (7.58.0-2ubuntu3.2) ...
+Processing triggers for libc-bin (2.27-3ubuntu1) ...
+Processing triggers for man-db (2.8.3-2) ...
+Setting up curl (7.58.0-2ubuntu3.2) ...
+root@ubuntu:~# curl http://172.17.0.6
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+root@ubuntu:~# 
+
+
+Remove and recreate it with port fordwarding
+-----------------------
+root@ubuntu:~# docker rm -f nginx1
+nginx1
+root@ubuntu:~# docker run -d --name nginx1 --hostname nginx -p 8000:80 nginx
+0b740fd28ae1b060e35f3e5f0a872ae31c71df701b6b2ad27a0578cd5edea377
+root@ubuntu:~# 
+
+To create a netwok
+----------------
+root@ubuntu:~# docker network create network1
+dce9939311abac0db5854b532b4d839a53374d541b189c65b58f1213b8b17cde
+root@ubuntu:~# docker network create network2
+ed482861e6dc6df1df0b1fa2c06136d9aa6b85857887ee2ddcf17e34053705f0
+root@ubuntu:~# docker network ls
+NETWORK ID          NAME                DRIVER              SCOPE
+3c6d303a9028        bridge              bridge              local
+661f25192363        host                host                local
+dce9939311ab        network1            bridge              local
+ed482861e6dc        network2            bridge              local
+a8a5e79257fb        none                null                local
+root@ubuntu:~# 
+
+Both have diff subnets:
+----------------------
+root@ubuntu:~# docker inspect network1
+[
+    {
+        "Name": "network1",
+        "Id": "dce9939311abac0db5854b532b4d839a53374d541b189c65b58f1213b8b17cde",
+        "Created": "2018-09-03T03:14:20.537026237-07:00",
+        "Scope": "local",
+        "Driver": "bridge",
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": {},
+            "Config": [
+                {
+                    "Subnet": "172.18.0.0/16",
+                    "Gateway": "172.18.0.1"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Containers": {},
+        "Options": {},
+        "Labels": {}
+    }
+]
+root@ubuntu:~# docker inspect network2
+[
+    {
+        "Name": "network2",
+        "Id": "ed482861e6dc6df1df0b1fa2c06136d9aa6b85857887ee2ddcf17e34053705f0",
+        "Created": "2018-09-03T03:14:27.024445226-07:00",
+        "Scope": "local",
+        "Driver": "bridge",
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": {},
+            "Config": [
+                {
+                    "Subnet": "172.19.0.0/16",
+                    "Gateway": "172.19.0.1"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Containers": {},
+        "Options": {},
+        "Labels": {}
+    }
+]
+root@ubuntu:~# 
+
+Create 3 containers and map them to network (except c3)
+-----------------
+root@ubuntu:~# docker run -d --name c1 --network=network1 nginx
+323b6c73cb0ab5b1996183b75ec861a057dca783e3ef6d0d89e5ca025ecbaa6b
+root@ubuntu:~# docker run -d --name c2 --network=network2 nginx
+0582da0b7ece5ad89fffda7248449922b1cbc4ab4483c4be79abefec9ec4842c
+root@ubuntu:~# docker run -d --name c3 nginx
+22290611b18ce61d0e7c52744769ca176a1e60477fbfed0679cc3f89069ec6c5
+root@ubuntu:~# 
+
+do an inspect of all three containers and get teh IP
+------------------------
+root@ubuntu:~# docker inspect c1 | grep IPA
+            "SecondaryIPAddresses": null,
+            "IPAddress": "",
+                    "IPAMConfig": null,
+                    "IPAddress": "172.18.0.2",
+root@ubuntu:~# docker inspect c2 | grep IPA
+            "SecondaryIPAddresses": null,
+            "IPAddress": "",
+                    "IPAMConfig": null,
+                    "IPAddress": "172.19.0.2",
+root@ubuntu:~# docker inspect c3 | grep IPA
+            "SecondaryIPAddresses": null,
+            "IPAddress": "172.17.0.7",
+                    "IPAMConfig": null,
+                    "IPAddress": "172.17.0.7",
+root@ubuntu:~# 
+
+Now add C2 to network1., by this C2 will have 2 IP's associated with nw1 and nw2
+-----------------
+root@ubuntu:~# docker network connect network1 c2
+
+root@ubuntu:~# docker inspect c2 | grep IPA
+            "SecondaryIPAddresses": null,
+            "IPAddress": "",
+                    "IPAMConfig": {},
+                    "IPAddress": "172.18.0.3",
+                    "IPAMConfig": null,
+                    "IPAddress": "172.19.0.2",
+root@ubuntu:~# 
+
+By this with 172.18 IP both C1 and C2 can communicate. We can add C3 to nw1 so all the containers can communicate with each other with nw1 ip.
+
+Now login to C2 and try to ping C1
+
+root@ubuntu:~# docker exec -it c2 bash
+
+root@0582da0b7ece:/# ping 172.18.0.2
+bash: ping: command not found
+
+install ping
+-------
+root@0582da0b7ece:/# apt-get install iputils-ping
+
+root@0582da0b7ece:/# ping 172.18.0.2
+PING 172.18.0.2 (172.18.0.2) 56(84) bytes of data.
+64 bytes from 172.18.0.2: icmp_seq=1 ttl=64 time=0.464 ms
+64 bytes from 172.18.0.2: icmp_seq=2 ttl=64 time=0.165 ms
+64 bytes from 172.18.0.2: icmp_seq=3 ttl=64 time=0.164 ms
+
+
+**********************************
+
+Now install msql & wordpress
+--------------
+
+root@ubuntu:~# docker run --name some-mysql -e MYSQL_ROOT_PASSWORD=mypwd -d mysql
+Unable to find image 'mysql:latest' locally
+latest: Pulling from library/mysql
+be8881be8156: Already exists 
+c3995dabd1d7: Pull complete 
+9931fdda3586: Pull complete 
+bb1b6b6eff6a: Pull complete 
+a65f125fa718: Pull complete 
+2d9f8dd09be2: Pull complete 
+37b912cb2afe: Pull complete 
+54242fcd8eaa: Pull complete 
+0a9d4d211511: Pull complete 
+270ae5bd02c2: Pull complete 
+9b55b8e72e70: Pull complete 
+68083f7985cd: Pull complete 
+Digest: sha256:d39a8ab7679df309e7eff6ddba434ad5747cc2a2acee2d7c60d8221c9acedcad
+Status: Downloaded newer image for mysql:latest
+aecca2f3a965a9bff45eec6f1eb2fa19bae1a5622d0ae6af974c921a018c581e
+root@ubuntu:~# 
+root@ubuntu:~# docker run --name some-wordpress --link some-mysql:mysql -d wordpress
+Unable to find image 'wordpress:latest' locally
+latest: Pulling from library/wordpress
+be8881be8156: Already exists 
+69a25f7e4930: Pull complete 
+65632e89c5f4: Pull complete 
+cd75fa32da8f: Pull complete 
+15bc7736db11: Pull complete 
+b2c40cef4807: Pull complete 
+f3507e55e5eb: Pull complete 
+e6006cdfa16b: Pull complete 
+a3ed406e3c88: Pull complete 
+ae70e16ef035: Pull complete 
+b9501b07bdf1: Pull complete 
+f9ecb48a3c12: Pull complete 
+23d9db872f7e: Pull complete 
+c41139f0d4f5: Pull complete 
+f180ba12d718: Pull complete 
+543b133149a6: Pull complete 
+4cb905a2737c: Pull complete 
+a06f9e60b080: Pull complete 
+904e670dd387: Pull complete 
+8178629708ff: Pull complete 
+Digest: sha256:53b2ac8384043c8d455101c9ffce08262677549d33fa3c98d557b49b9a91089c
+Status: Downloaded newer image for wordpress:latest
+16698eb06f354d518b31d2039d175bc4eb4d44642915a2a8a7135c0ad8102444
+root@ubuntu:~# 
+
+Get the IP of the wordpress container
+---------
+root@ubuntu:~# docker inspect some-wordpress | grep IPA
+            "SecondaryIPAddresses": null,
+            "IPAddress": "172.17.0.9",
+                    "IPAMConfig": null,
+                    "IPAddress": "172.17.0.9",
+root@ubuntu:~# 
+
+From web access http://172.17.0.9/80 and do the install of wordpress and access it.
+
+********************************************
+Volume mounting:
+---------------
+
+root@ubuntu:~# mkdir -p verizon/Day1/data
+root@ubuntu:~# cd verizon/Day1/data
+root@ubuntu:~/verizon/Day1/data# echo "My confidential data" > data.txt
+root@ubuntu:~/verizon/Day1/data# ls -lrth
+total 4.0K
+-rw-r--r-- 1 root root 21 Sep  3 04:34 data.txt
+root@ubuntu:~/verizon/Day1/data# pwd
+/root/verizon/Day1/data
+root@ubuntu:~/verizon/Day1/data# docker run -d --name server4 -v /root/verizon/Day1/data:/root/data nginx
+0a9a7efdd66dee76e83ce3f84916b862299b35dcafa783d3cc0a5aad9220e792
+root@ubuntu:~/verizon/Day1/data# docker ps
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                  NAMES
+0a9a7efdd66d        nginx               "nginx -g 'daemon of…"   8 seconds ago       Up 7 seconds        80/tcp                 server4
+16698eb06f35        wordpress           "docker-entrypoint.s…"   14 minutes ago      Up 14 minutes       80/tcp                 some-wordpress
+aecca2f3a965        mysql               "docker-entrypoint.s…"   18 minutes ago      Up 18 minutes       3306/tcp, 33060/tcp    some-mysql
+22290611b18c        nginx               "nginx -g 'daemon of…"   About an hour ago   Up About an hour    80/tcp                 c3
+0582da0b7ece        nginx               "nginx -g 'daemon of…"   About an hour ago   Up About an hour    80/tcp                 c2
+323b6c73cb0a        nginx               "nginx -g 'daemon of…"   About an hour ago   Up About an hour    80/tcp                 c1
+0b740fd28ae1        nginx               "nginx -g 'daemon of…"   2 hours ago         Up 2 hours          0.0.0.0:8000->80/tcp   nginx1
+ef488aa171b6        bash                "docker-entrypoint.s…"   3 hours ago         Up 2 hours                                 server3
+31d04c5d5d1a        bash                "docker-entrypoint.s…"   3 hours ago         Up 2 hours                                 server2
+166c234799eb        bash                "docker-entrypoint.s…"   3 hours ago         Up 2 hours                                 server1
+424bd0050d82        ubuntu              "/bin/bash"              4 hours ago         Up 4 hours                                 stupefied_austin
+
+Now get into that container and edit the file,
+-----------------
+root@ubuntu:~/verizon/Day1/data# docker exec -it server4 bash
+root@0a9a7efdd66d:/# df -h
+Filesystem      Size  Used Avail Use% Mounted on
+overlay          25G  7.8G   16G  34% /
+tmpfs            64M     0   64M   0% /dev
+tmpfs           3.9G     0  3.9G   0% /sys/fs/cgroup
+/dev/sda1        25G  7.8G   16G  34% /root/data
+shm              64M     0   64M   0% /dev/shm
+tmpfs           3.9G     0  3.9G   0% /proc/scsi
+tmpfs           3.9G     0  3.9G   0% /sys/firmware
+root@0a9a7efdd66d:/# cd /root/data/
+root@0a9a7efdd66d:~/data# ls -lrth
+total 4.0K
+-rw-r--r-- 1 root root 21 Sep  3 11:34 data.txt
+root@0a9a7efdd66d:~/data# 
+root@0a9a7efdd66d:~/data# 
+root@0a9a7efdd66d:~/data# echo "Modified inside container server4" > data.txt
+root@0a9a7efdd66d:~/data# exit
+exit
+
+Now remove that container
+------------
+root@ubuntu:~/verizon/Day1/data# docker rm -f server4
+server4
+root@ubuntu:~/verizon/Day1/data# ls -lrth
+total 4.0K
+-rw-r--r-- 1 root root 34 Sep  3 04:38 data.txt
+root@ubuntu:~/verizon/Day1/data# cat data.txt 
+Modified inside container server4
+root@ubuntu:~/verizon/Day1/data# 
+
+We can still see the file with contents modified., this can be used as a case for DR.
+
+To rename a created container (syntax: oldname new name)
+----------
+root@ubuntu:~/verizon/Day1/data# docker rename some-mysql mysql
+root@ubuntu:~/verizon/Day1/data# docker ps
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                  NAMES
+16698eb06f35        wordpress           "docker-entrypoint.s…"   27 minutes ago      Up 27 minutes       80/tcp                 some-wordpress
+aecca2f3a965        mysql               "docker-entrypoint.s…"   31 minutes ago      Up 30 minutes       3306/tcp, 33060/tcp    mysql
+22290611b18c        nginx               "nginx -g 'daemon of…"   About an hour ago   Up About an hour    80/tcp                 c3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
