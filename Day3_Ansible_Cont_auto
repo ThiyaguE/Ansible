@@ -1,0 +1,347 @@
+Day3 - Automating creation of containers
+-----------------------------------------
+
+First remove all existing containers (if required)
+
+root@ubuntu:~/verizon/Day3# docker rm -f $(docker ps -aq)
+6e2ad652fcca
+e82a52a60567
+39f0807f0d58
+f17825cdffcf
+cb673103fe9f
+19d5af557c82
+16698eb06f35
+aecca2f3a965
+22290611b18c
+0582da0b7ece
+323b6c73cb0a
+0b740fd28ae1
+ef488aa171b6
+31d04c5d5d1a
+166c234799eb
+424bd0050d82
+3de19c7ce1b0
+5026d20c7793
+
+Create teh yaml file for creation
+-------------------------------
+root@ubuntu:~/verizon/Day3# cat create_containers.yml 
+- name: Dem provisioning docker containers from Ansible
+  hosts: localhost
+  tasks: 
+   - name: Create Ubuntu Container
+     docker_container: 
+       name: "ubuntu{{item}}"
+       hostname: "ubuntu{{item}}"
+       image: "verizon/ansible-ubuntu"
+       ports: 
+         - "200{{item}}:22"
+         - "800{{item}}:80"
+       state: started 
+     with_sequence: start=1 end=3
+
+   - name: Create CentOS Container
+     docker_container: 
+       name: "centos{{item}}"
+       hostname: "centos{{item}}"
+       image: "verizon/ansible-centos"
+       ports: 
+         - "300{{item}}:22"
+         - "900{{item}}:80"
+       state: started 
+     with_sequence: start=1 end=3
+
+Note: This may fail if missing pip modules., install them (apt install -y python-pip and # pip install docker-py)
+root@ubuntu:~/verizon/Day3# ansible-playbook create_containers.yml
+
+PLAY [Dem provisioning docker containers from Ansible] ***************************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************
+ok: [localhost]
+
+TASK [Create Ubuntu Container] ***************************************************************************************************************
+changed: [localhost] => (item=1)
+changed: [localhost] => (item=2)
+changed: [localhost] => (item=3)
+
+TASK [Create CentOS Container] ***************************************************************************************************************
+changed: [localhost] => (item=1)
+changed: [localhost] => (item=2)
+changed: [localhost] => (item=3)
+
+PLAY RECAP ***********************************************************************************************************************************
+localhost                  : ok=3    changed=2    unreachable=0    failed=0   
+
+root@ubuntu:~/verizon/Day3# docker ps
+CONTAINER ID        IMAGE                    COMMAND               CREATED             STATUS              PORTS                                        NAMES
+2cc3764a16d3        verizon/ansible-centos   "/usr/sbin/sshd -D"   6 seconds ago       Up 5 seconds        0.0.0.0:3003->22/tcp, 0.0.0.0:9003->80/tcp   centos3
+3992490aaf69        verizon/ansible-centos   "/usr/sbin/sshd -D"   8 seconds ago       Up 6 seconds        0.0.0.0:3002->22/tcp, 0.0.0.0:9002->80/tcp   centos2
+3afc09047961        verizon/ansible-centos   "/usr/sbin/sshd -D"   9 seconds ago       Up 7 seconds        0.0.0.0:3001->22/tcp, 0.0.0.0:9001->80/tcp   centos1
+d3e130e1e99a        verizon/ansible-ubuntu   "/usr/sbin/sshd -D"   10 seconds ago      Up 9 seconds        0.0.0.0:2003->22/tcp, 0.0.0.0:8003->80/tcp   ubuntu3
+d9835d452b2c        verizon/ansible-ubuntu   "/usr/sbin/sshd -D"   11 seconds ago      Up 10 seconds       0.0.0.0:2002->22/tcp, 0.0.0.0:8002->80/tcp   ubuntu2
+0c92113ce489        verizon/ansible-ubuntu   "/usr/sbin/sshd -D"   13 seconds ago      Up 11 seconds       0.0.0.0:2001->22/tcp, 0.0.0.0:8001->80/tcp   ubuntu1
+root@ubuntu:~/verizon/Day3# 
+
+root@ubuntu:~/verizon/Day3# 
+
+
+As we have created the containers with wrong port 2001,2002,2003 we need it start with 2000, so will remove all those and recreate them.
+******************************************************************************************************************************
+
+Remove all containers with ansible:
+---------------------------------
+root@ubuntu:~/verizon/Day3# cat remove_containers.yml 
+- name: Dem removing docker containers from Ansible
+  hosts: localhost
+  
+  pre_tasks: 
+   - name: Remove all Ubuntu Container
+     docker_container: 
+       name: "ubuntu{{item}}"
+       hostname: "ubuntu{{item}}"
+       image: "verizon/ansible-ubuntu"
+       state: absent 
+     with_sequence: count=3
+     #with_sequence: start=1 end=3
+
+   - name: Remove all CentOS Container
+     docker_container: 
+       name: "centos{{item}}"
+       hostname: "centos{{item}}"
+       image: "verizon/ansible-centos"
+       state: absent 
+     with_sequence: count=3
+     #with_sequence: start=1 end=3
+
+   - name: Remove all remaining containers
+     shell: "docker rm -f $(docker ps -aq)"
+     ignore_errors: True 
+
+
+root@ubuntu:~/verizon/Day3# ansible-playbook remove_containers.yml 
+
+PLAY [Dem removing docker containers from Ansible] *******************************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************
+ok: [localhost]
+
+TASK [Remove all Ubuntu Container] ***********************************************************************************************************
+changed: [localhost] => (item=1)
+changed: [localhost] => (item=2)
+changed: [localhost] => (item=3)
+
+TASK [Remove all CentOS Container] ***********************************************************************************************************
+changed: [localhost] => (item=1)
+changed: [localhost] => (item=2)
+changed: [localhost] => (item=3)
+
+TASK [Remove all remaining containers] *******************************************************************************************************
+fatal: [localhost]: FAILED! => {"changed": true, "cmd": "docker rm -f $(docker ps -aq)", "delta": "0:00:00.022175", "end": "2018-09-05 05:00:31.385044", "msg": "non-zero return code", "rc": 1, "start": "2018-09-05 05:00:31.362869", "stderr": "\"docker rm\" requires at least 1 argument.\nSee 'docker rm --help'.\n\nUsage:  docker rm [OPTIONS] CONTAINER [CONTAINER...] [flags]\n\nRemove one or more containers", "stderr_lines": ["\"docker rm\" requires at least 1 argument.", "See 'docker rm --help'.", "", "Usage:  docker rm [OPTIONS] CONTAINER [CONTAINER...] [flags]", "", "Remove one or more containers"], "stdout": "", "stdout_lines": []}
+...ignoring
+
+PLAY RECAP ***********************************************************************************************************************************
+localhost                  : ok=4    changed=3    unreachable=0    failed=0   
+
+
+
+Create back the containers, remember to change the with_sequence to start with 0,
+--------------------------------------------------------------------------------
+
+root@ubuntu:~/verizon/Day3# cat create_containers.yml 
+- name: Dem provisioning docker containers from Ansible
+  hosts: localhost
+  tasks: 
+   - name: Create Ubuntu Container
+     docker_container: 
+       name: "ubuntu{{item}}"
+       hostname: "ubuntu{{item}}"
+       image: "verizon/ansible-ubuntu"
+       ports: 
+         - "200{{item}}:22"
+         - "800{{item}}:80"
+       state: started 
+     with_sequence: start=0 end=2
+
+   - name: Create CentOS Container
+     docker_container: 
+       name: "centos{{item}}"
+       hostname: "centos{{item}}"
+       image: "verizon/ansible-centos"
+       ports: 
+         - "300{{item}}:22"
+         - "900{{item}}:80"
+       state: started 
+     with_sequence: start=0 end=2
+root@ubuntu:~/verizon/Day3# 
+
+Run the playbook,
+
+root@ubuntu:~/verizon/Day3# ansible-playbook create_containers.yml
+
+PLAY [Dem provisioning docker containers from Ansible] ***************************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************
+ok: [localhost]
+
+TASK [Create Ubuntu Container] ***************************************************************************************************************
+changed: [localhost] => (item=0)
+changed: [localhost] => (item=1)
+changed: [localhost] => (item=2)
+
+TASK [Create CentOS Container] ***************************************************************************************************************
+changed: [localhost] => (item=0)
+changed: [localhost] => (item=1)
+changed: [localhost] => (item=2)
+
+PLAY RECAP ***********************************************************************************************************************************
+localhost                  : ok=3    changed=2    unreachable=0    failed=0   
+
+root@ubuntu:~/verizon/Day3# docker ps
+CONTAINER ID        IMAGE                    COMMAND               CREATED             STATUS              PORTS                                        NAMES
+a8979f450c6a        verizon/ansible-centos   "/usr/sbin/sshd -D"   3 minutes ago       Up 3 minutes        0.0.0.0:3002->22/tcp, 0.0.0.0:9002->80/tcp   centos2
+ba93b32cc2f6        verizon/ansible-centos   "/usr/sbin/sshd -D"   3 minutes ago       Up 3 minutes        0.0.0.0:3001->22/tcp, 0.0.0.0:9001->80/tcp   centos1
+232e7d77b60a        verizon/ansible-centos   "/usr/sbin/sshd -D"   3 minutes ago       Up 3 minutes        0.0.0.0:3000->22/tcp, 0.0.0.0:9000->80/tcp   centos0
+af5cd63e6fb0        verizon/ansible-ubuntu   "/usr/sbin/sshd -D"   3 minutes ago       Up 3 minutes        0.0.0.0:2002->22/tcp, 0.0.0.0:8002->80/tcp   ubuntu2
+e2f252bdaa27        verizon/ansible-ubuntu   "/usr/sbin/sshd -D"   3 minutes ago       Up 3 minutes        0.0.0.0:2001->22/tcp, 0.0.0.0:8001->80/tcp   ubuntu1
+58f2f631a03e        verizon/ansible-ubuntu   "/usr/sbin/sshd -D"   3 minutes ago       Up 3 minutes        0.0.0.0:2000->22/tcp, 0.0.0.0:8000->80/tcp   ubuntu0
+root@ubuntu:~/verizon/Day3# 
+
+We can have this remove and create as a single playbook, container_rem_create.yml
+-------------------------------------------------------------------------------
+
+root@ubuntu:~/verizon/Day3# cat container_rem_create.yml 
+- name: Dem removing existing and creating docker containers from Ansible
+  hosts: localhost
+  
+  pre_tasks: 
+   - name: Remove all Ubuntu Container
+     docker_container: 
+       name: "ubuntu{{item}}"
+       hostname: "ubuntu{{item}}"
+       image: "verizon/ansible-ubuntu"
+       state: absent 
+     with_sequence: count=3
+     #with_sequence: start=1 end=3
+
+   - name: Remove all CentOS Container
+     docker_container: 
+       name: "centos{{item}}"
+       hostname: "centos{{item}}"
+       image: "verizon/ansible-centos"
+       state: absent 
+     with_sequence: count=3
+     #with_sequence: start=1 end=3
+
+   - name: Remove all remaining containers
+     shell: "docker rm -f $(docker ps -aq)"
+     ignore_errors: True 
+
+  tasks: 
+   - name: Create Ubuntu Container
+     docker_container: 
+       name: "ubuntu{{item}}"
+       hostname: "ubuntu{{item}}"
+       image: "verizon/ansible-ubuntu"
+       ports: 
+         - "200{{item}}:22"
+         - "800{{item}}:80"
+       state: started 
+     with_sequence: start=0 end=2
+
+   - name: Create CentOS Container
+     docker_container: 
+       name: "centos{{item}}"
+       hostname: "centos{{item}}"
+       image: "verizon/ansible-centos"
+       ports: 
+         - "300{{item}}:22"
+         - "900{{item}}:80"
+       state: started 
+     with_sequence: start=0 end=2
+root@ubuntu:~/verizon/Day3# 
+
+ANSIBLE VAULT:
+--------------------
+
+root@ubuntu:~/verizon/Day3# cat contact_file 
+contacts:
+
+ Arun:
+  name: Arunkumar
+  Mobile: 123
+root@ubuntu:~/verizon/Day3# cat dictionary.yml 
+- name: Dem use of dictionary and looping dictionary
+  hosts: localhost
+  vars_files: 
+   - contact_file
+  tasks: 
+   - name: Print all contacts
+     debug: msg="Mobile number of {{item.value.name}} is {{item.value.Mobile}}"
+     with_dict: "{{contacts}}"
+
+root@ubuntu:~/verizon/Day3# 
+
+
+root@ubuntu:~/verizon/Day3# cat contact_file 
+contacts:
+
+ Arun:
+  name: Arunkumar
+  Mobile: 123
+root@ubuntu:~/verizon/Day3# 
+
+root@ubuntu:~/verizon/Day3# cat .secrect 
+vz123
+root@ubuntu:~/verizon/Day3# 
+
+root@ubuntu:~/verizon/Day3# cat ansible.cfg 
+[defaults]
+inventory=hosts
+vault_password_file = .secrect
+ 
+[ssh_connection]
+scp_if_ssh = True
+root@ubuntu:~/verizon/Day3# 
+
+
+
+root@ubuntu:~/verizon/Day3# ansible-vault encrypt contact_file 
+Encryption successful
+root@ubuntu:~/verizon/Day3# 
+root@ubuntu:~/verizon/Day3# 
+root@ubuntu:~/verizon/Day3# ansible-playbook dictionary.yml 
+
+PLAY [Dem use of dictionary and looping dictionary] ******************************************************************************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************
+ok: [localhost]
+
+TASK [Print all contacts] ********************************************************************************************************************
+ok: [localhost] => (item=None) => {
+    "msg": "Mobile number of Arunkumar is 123"
+}
+
+PLAY RECAP ***********************************************************************************************************************************
+localhost                  : ok=2    changed=0    unreachable=0    failed=0   
+
+root@ubuntu:~/verizon/Day3# cat contact_file 
+$ANSIBLE_VAULT;1.1;AES256
+33373632393363356661633233326237313335633133373761616132333630396331383266373539
+3366376635326533646637353039643534346465313639370a373261613230373063353431623963
+66633462643039306363343230366137613565356565303839646433653734366163366163336333
+6462396530323039660a653637643931336235303230373661616264613765386138643066303365
+32353338346363663336316139636232653936636265656266336263623165373034656539386230
+38613635623035623032643633623363353861643965613165383265636530626632323239346332
+636263353036636631663464303163333838
+root@ubuntu:~/verizon/Day3# ansible-vault decrypt contact_file 
+Decryption successful
+root@ubuntu:~/verizon/Day3# cat contact_file 
+contacts:
+
+ Arun:
+  name: Arunkumar
+  Mobile: 123
+
+
+
+

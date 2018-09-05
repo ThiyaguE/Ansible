@@ -666,6 +666,175 @@ root@ubuntu:~/verizon/Day3# tree
 
 3 directories, 22 files
 
+Handlers
+-----------
+Used to notify when a activity happens., here we need the nginx server to restart only if the default files are copied. To check this modify the default and default.conf files in loacal.
+
+root@ubuntu:~/verizon/Day3# cat installnginx.yml 
+- name: Demo for conditional installation - installing,config and deployment of webpage to nginx web server 
+  hosts: all
+  vars: 
+   - greeting_msg: Devops
+   - provitioner_tool: Docker
+   - automation_tool: Ansible  
+  tasks: 
+   #This is a comment
+   - name: Install nginx web server in Ubuntu
+     when: (ansible_distribution == "Ubuntu" and ansible_os_family == "Debian")
+     apt: 
+       name: nginx 
+       state: latest 
+       update_cache: yes
+
+   - name: Install EPEL (Extra Package for Enterprise Linux) in CentOS
+     when: (ansible_distribution == "CentOS" and ansible_os_family == "RedHat")
+     yum: name=epel-release state=latest
+
+   - name: Install nginx web server in CentOS
+     when: (ansible_distribution == "CentOS" and ansible_os_family == "RedHat")
+     yum: 
+       name: nginx 
+       state: latest 
+       #update_cache: yes
+   
+   - name: Configure nginx web root folder in Ubuntu 
+     when: (ansible_distribution == "Ubuntu" and ansible_os_family == "Debian")
+     copy: src=default dest=/etc/nginx/sites-available/default
+     notify: Restart the nginx server
+   
+   - name: Configure nginx web root folder in CentOS 
+     when: (ansible_distribution == "CentOS" and ansible_os_family == "RedHat")
+     copy: src=default.conf dest=/etc/nginx/conf.d/default.conf
+     notify: Restart the nginx server
+  
+  handlers:
+   - name: Restart the nginx server
+     command: service nginx restart
+
+   - name: Create the web root folder
+     file: path=/var/html state=directory mode=0777
+
+   - name: Deploy a web page into nginx web server
+     template: src=index.html.j2 dest=/var/html/index.html 
+     #when: (ansible_distribution == "Ubuntu" and ansible_os_family == "Debian")
+root@ubuntu:~/verizon/Day3# 
+
+Execute teh playbook  now,
+-------------------------
+
+root@ubuntu:~/verizon/Day3# ansible-playbook installnginx.yml 
+
+PLAY [Demo for conditional installation - installing,config and deployment of webpage to nginx web server] ***********************************
+
+TASK [Gathering Facts] ***********************************************************************************************************************
+ok: [ubuntu2]
+ok: [ubuntu3]
+ok: [ubuntu1]
+ok: [centos1]
+ok: [centos3]
+ok: [centos2]
+
+TASK [Install nginx web server in Ubuntu] ****************************************************************************************************
+skipping: [centos3]
+skipping: [centos1]
+skipping: [centos2]
+ok: [ubuntu1]
+ok: [ubuntu2]
+ok: [ubuntu3]
+
+TASK [Install EPEL (Extra Package for Enterprise Linux) in CentOS] ***************************************************************************
+skipping: [ubuntu3]
+skipping: [ubuntu1]
+skipping: [ubuntu2]
+ok: [centos3]
+ok: [centos1]
+ok: [centos2]
+
+TASK [Install nginx web server in CentOS] ****************************************************************************************************
+skipping: [ubuntu3]
+skipping: [ubuntu1]
+skipping: [ubuntu2]
+ok: [centos3]
+ok: [centos1]
+ok: [centos2]
+
+TASK [Configure nginx web root folder in Ubuntu] *********************************************************************************************
+skipping: [centos3]
+skipping: [centos1]
+skipping: [centos2]
+changed: [ubuntu1]
+changed: [ubuntu2]
+changed: [ubuntu3]
+
+TASK [Configure nginx web root folder in CentOS] *********************************************************************************************
+skipping: [ubuntu3]
+skipping: [ubuntu1]
+skipping: [ubuntu2]
+changed: [centos3]
+changed: [centos1]
+changed: [centos2]
+
+RUNNING HANDLER [Restart the nginx server] ***************************************************************************************************
+ [WARNING]: Consider using the service module rather than running service.  If you need to use command because service is insufficient you
+can add warn=False to this command task or set command_warnings=False in ansible.cfg to get rid of this message.
+
+changed: [centos3]
+changed: [centos1]
+changed: [ubuntu1]
+changed: [ubuntu2]
+changed: [centos2]
+changed: [ubuntu3]
+
+PLAY RECAP ***********************************************************************************************************************************
+centos1                    : ok=5    changed=2    unreachable=0    failed=0   
+centos2                    : ok=5    changed=2    unreachable=0    failed=0   
+centos3                    : ok=5    changed=2    unreachable=0    failed=0   
+ubuntu1                    : ok=4    changed=2    unreachable=0    failed=0   
+ubuntu2                    : ok=4    changed=2    unreachable=0    failed=0   
+ubuntu3                    : ok=4    changed=2    unreachable=0    failed=0   
+
+
+List module
+-------------------
+
+root@ubuntu:~/verizon/Day3# cat list.yml 
+- name: Dem use of list var and its navigation as a loop
+  hosts: localhost
+  gather_facts: false
+  vars: 
+   - softwares_tools: 
+     - tree
+     - vim
+     - default-jdk
+     - maven
+
+  tasks: 
+   - name: Print all the list of software tools
+     debug: msg = "{{item}}"
+     with_list: "{{softwares_tools}}"
+
+Run the playbook
+---------------------
+root@ubuntu:~/verizon/Day3# ansible-playbook list.yml 
+
+PLAY [Dem use of list var and its navigation as a loop] **************************************************************************************
+
+TASK [Print all the list of software tools] **************************************************************************************************
+ok: [localhost] => (item=None) => {
+    "msg": "Hello world!"
+}
+ok: [localhost] => (item=None) => {
+    "msg": "Hello world!"
+}
+ok: [localhost] => (item=None) => {
+    "msg": "Hello world!"
+}
+ok: [localhost] => (item=None) => {
+    "msg": "Hello world!"
+}
+
+PLAY RECAP ***********************************************************************************************************************************
+localhost                  : ok=1    changed=0    unreachable=0    failed=0   
 
 
 
