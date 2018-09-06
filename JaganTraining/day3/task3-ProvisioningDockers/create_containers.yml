@@ -1,0 +1,39 @@
+---
+- name: Demonstrates provisioning docker containers from Ansible
+  hosts: localhost
+  pre_tasks: 
+    - name: Remove all ubuntu COntainers
+      docker_container: 
+        name: "ubuntu{{item}}"
+        image: "wonderland/ansible-ubuntu"
+        state: absent
+      with_sequence: start=1 end=3
+    - name: Remove all centos COntainers
+      docker_container: 
+        name: "centos{{item}}"
+        image: "wonderland/ansible-centos"
+        state: absent
+      with_sequence: start=1 end=3
+    - name: Remove all remaining containers
+      shell: "docker rm -f $(docker ps -aq)"
+  tasks: 
+    - name: Create Ubuntu container
+      docker_container: 
+        name: "wl{{item}}"
+        hostname: "wl{{item}}"
+        image: "wonderland/ansible-ubuntu"
+        ports:
+          - "200{{item}}:22"
+          - "800{{item}}:80"
+        state: started
+      with_sequence: start=3 end=5
+    - name: Create centos container
+      docker_container: 
+        name: "centos{{item}}"
+        hostname: "centos{{item}}"
+        image: "wonderland/ansible-centos"
+        ports:
+          - "300{{item}}:22"
+          - "900{{item}}:80"
+        state: started
+      with_sequence: start=0 end=2

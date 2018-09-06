@@ -1,0 +1,12 @@
+---
+- name: Demonstrates use of register variable
+  hosts: localhost
+  tasks: 
+    - name: List the directory 
+      shell: ls -l
+      register: command_output
+
+    - name: Print output 
+      debug: var=command_output
+
+...

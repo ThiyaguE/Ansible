@@ -1,0 +1,9 @@
+---
+- name: Domestrates how to invoke our custom ansible module
+  hosts: localhost
+  tasks: 
+    - name: Invoke our custom hello module
+      hello:
+      register: output
+    - debug: var=output
+...

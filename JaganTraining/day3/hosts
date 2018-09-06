@@ -1,0 +1,15 @@
+[all]
+wl[1:3]
+centos[1:3]
+
+[dev]
+wl1
+centos1
+
+[qa]
+wl2
+centos2
+
+[prod]
+wl3
+centos3
